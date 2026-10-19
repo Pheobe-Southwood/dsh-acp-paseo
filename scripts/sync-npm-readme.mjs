@@ -16,6 +16,7 @@ let readme = await readFile(join(root, 'README.md'), 'utf8');
 readme = readme.replaceAll('docs/images/', `${raw}/docs/images/`);
 readme = readme.replaceAll('](docs/TECHNICAL.md)', `](${repo}/blob/main/docs/TECHNICAL.md)`);
 readme = readme.replaceAll('](docs/PROVIDER.md)', `](${repo}/blob/main/docs/PROVIDER.md)`);
+readme = readme.replaceAll('](docs/CONTEXT.md)', `](${repo}/blob/main/docs/CONTEXT.md)`);
 readme = readme.replaceAll('](LICENSE)', `](${repo}/blob/main/LICENSE)`);
 readme = readme.replaceAll('](THIRD_PARTY_NOTICES.md)', `](${repo}/blob/main/THIRD_PARTY_NOTICES.md)`);
 
