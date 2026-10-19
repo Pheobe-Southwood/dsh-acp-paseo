@@ -216,6 +216,11 @@ export function createConnection(options: ConnectionOptions): ProviderConnection
     }
     switch (update.sessionUpdate) {
       case 'user_message_chunk':
+        // Paseo renders the user's own prompt from the composer. DSH also emits a
+        // user event for the injected runtime context at the start of a live turn,
+        // which would appear as a second, noisy user message. Keep the chunks for
+        // session replay only.
+        if (session.activeTurn) return;
         if (typeof update.content?.text === 'string') messageItem(session, 'user', 'user_message', update.content.text, update.messageId);
         return;
       case 'agent_message_chunk':
@@ -392,12 +397,8 @@ export function createConnection(options: ConnectionOptions): ProviderConnection
       : promptContent(prompt.input?.content ?? []);
     emit({ type: 'session.prompt_result', sessionId: session.sessionId, clientMessageId: prompt.clientMessageId, result: { type: 'turn', turnId } });
     emit({ type: 'session.turn', sessionId: session.sessionId, turnId, state: 'started' });
-    if (!isCommand) {
-      const plain = content.map((part) => (part.type === 'text' ? part.text : '[image]')).join('\n');
-      if (plain.trim().length > 0) {
-        messageItem(session, 'user', 'user_message', plain, turnId);
-      }
-    }
+    // Paseo already puts the user's prompt in the timeline. Emitting it here as
+    // well is what made every live turn show the same message twice.
     try {
       const response = await session.client.prompt({ sessionId: session.acpSessionId, prompt: content });
       const usage = usageFromPromptResponse(response);

@@ -253,11 +253,7 @@ export function permissionRequestFromAcp(params: any): ProviderPermissionRequest
     kind: 'tool',
     title: String(toolCall.title ?? toolCall.name ?? 'Permission required'),
     ...(params?._meta?.dsh?.reason ? { description: String(params._meta.dsh.reason) } : {}),
-    input: {
-      toolCallId: String(toolCall.toolCallId ?? ''),
-      toolName: String(toolCall.title ?? toolCall.name ?? ''),
-      ...(params?._meta?.dsh?.native ? { native: params._meta.dsh.native } : {}),
-    } as any,
+    ...(toolCall.rawInput && typeof toolCall.rawInput === 'object' ? { input: toolCall.rawInput } : {}),
     actions,
   };
 }

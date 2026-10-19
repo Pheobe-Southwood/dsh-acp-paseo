@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import { dshMeta, eventNotification, frameNotification, initializeMeta, updateMeta } from '../../packages/dsh-acp-plus/src/meta.js';
-import { questionRequestFromDsh } from '../../packages/paseo-provider/src/mapping.js';
+import { questionRequestFromDsh } from '../../packages/paseo-provider/server/mapping.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contractDir = join(here, '..');

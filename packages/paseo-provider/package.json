@@ -6,7 +6,7 @@
   "type": "module",
   "files": [
     "index.server.ts",
-    "src",
+    "server",
     "paseo-plugin.json",
     "README.md"
   ],

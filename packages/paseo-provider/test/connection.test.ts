@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ProviderEventSchema, ProviderInputSchema } from '@getpaseo/plugin/server/provider';
 import { describe, expect, it, vi } from 'vitest';
-import { AcpSessionClient } from '../src/acp-client.js';
-import { createConnection } from '../src/connection.js';
+import { AcpSessionClient } from '../server/acp-client.js';
+import { createConnection } from '../server/connection.js';
 import { createFakeAgent, type FakeAgentHooks } from './fake-agent.js';
 
 const CAPABILITIES = [
@@ -100,6 +100,10 @@ describe('paseo provider connection', () => {
           sessionId: params.sessionId,
           update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'restored' }, messageId: 'm1' },
         });
+        await client.notify('session/update', {
+          sessionId: params.sessionId,
+          update: { sessionUpdate: 'user_message_chunk', content: { type: 'text', text: 'restored question' }, messageId: 'u1' },
+        });
       },
     });
     await send({
@@ -117,6 +121,11 @@ describe('paseo provider connection', () => {
     expect(itemIndex).toBeGreaterThan(0);
     expect(itemIndex).toBeLessThan(types.length - 1);
     expect(events[itemIndex].item).toMatchObject({ type: 'assistant_message', text: 'restored' });
+    const restoredUser = events
+      .filter((event) => event.type === 'timeline.item')
+      .map((event) => event.item)
+      .find((item) => item.type === 'user_message');
+    expect(restoredUser.text).toBe('restored question');
     assertSchema(events);
   });
 
@@ -127,6 +136,7 @@ describe('paseo provider connection', () => {
         await update({ sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'Hel' }, messageId: 'm2' });
         await update({ sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'lo' }, messageId: 'm2' });
         await update({ sessionUpdate: 'agent_thought_chunk', content: { type: 'text', text: 'thinking' }, messageId: 'm2' });
+        await update({ sessionUpdate: 'user_message_chunk', content: { type: 'text', text: 'injected runtime context' }, messageId: 'u2' });
         await update({
           sessionUpdate: 'tool_call',
           toolCallId: 't1',
@@ -163,6 +173,9 @@ describe('paseo provider connection', () => {
     expect(tool.detail).toMatchObject({ type: 'shell', command: 'ls -la', output: 'file.txt' });
     const todo = items.find((item) => item.type === 'todo');
     expect(todo.items[0]).toMatchObject({ text: 'step one', completed: false });
+    // Paseo owns the live user message; DSH user events only carry the injected
+    // runtime context and must not add a duplicate bubble.
+    expect(items.filter((item) => item.type === 'user_message')).toHaveLength(0);
     const usage = events.filter((event) => event.type === 'session.usage').at(-1);
     expect(usage.usage).toMatchObject({ contextWindowUsedTokens: 120, contextWindowMaxTokens: 1000 });
     expect(events.filter((event) => event.type === 'session.prompt_result')).toHaveLength(1);

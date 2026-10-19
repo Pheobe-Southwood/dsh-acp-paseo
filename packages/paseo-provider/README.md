@@ -15,6 +15,11 @@ export default function contribute(server: PluginServerContext) {
 }
 ```
 
+Paseo compiles plugin modules from `client/`, `server/` or `shared/`. The
+provider implementation lives in `server/`, and `index.server.ts` imports
+`./server/provider.js`. A module directly under the plugin root fails the
+compiler before the plugin can load.
+
 ```bash
 paseo plugin install /absolute/path/to/dsh-acp-paseo/packages/paseo-provider
 ```
