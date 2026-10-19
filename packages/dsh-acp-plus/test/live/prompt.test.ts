@@ -72,7 +72,7 @@ describe.skipIf(!live)('dsh-acp-plus live model turn', () => {
       }
     }
     const profile = join(home, 'profiles', 'acp-plus');
-    await mkdir(join(profile, 'node_modules'), { recursive: true });
+    await mkdir(join(profile, 'node_modules', '@ds-hu'), { recursive: true });
     await writeFile(
       join(profile, 'package.json'),
       `${JSON.stringify(
@@ -81,7 +81,7 @@ describe.skipIf(!live)('dsh-acp-plus live model turn', () => {
           private: true,
           dsh: {
             profile: {
-              bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-acp-app', 'dsh-acp-plus'],
+              bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-acp-app', '@ds-hu/dsh-acp-plus'],
               patchReload: 'startup',
             },
           },
@@ -92,7 +92,7 @@ describe.skipIf(!live)('dsh-acp-plus live model turn', () => {
     );
     await writeFile(join(profile, 'cordis.yml'), '[]\n');
     await writeFile(join(profile, 'cordis.patch.yml'), '[]\n');
-    await symlink(packageRoot, join(profile, 'node_modules', 'dsh-acp-plus'), 'dir');
+    await symlink(packageRoot, join(profile, 'node_modules', '@ds-hu', 'dsh-acp-plus'), 'dir');
 
     child = spawn(process.env.DSH_BIN ?? 'dsh', ['--profile', 'acp-plus'], {
       env: { ...process.env, DSH_HOME: home },

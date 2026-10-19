@@ -1,4 +1,4 @@
-# dsh-acp-plus
+# @ds-hu/dsh-acp-plus
 
 A lossless ACP v1 agent bridge for the DeepSeek Harness, shipped as a DSH bundle.
 
@@ -17,7 +17,7 @@ The profile must stack the base, the ACP application and this bundle:
       "bundles": [
         "@deepseek-ai/dsh-base",
         "@deepseek-ai/dsh-acp-app",
-        "dsh-acp-plus"
+        "@ds-hu/dsh-acp-plus"
       ],
       "patchReload": "startup"
     }
@@ -26,11 +26,11 @@ The profile must stack the base, the ACP application and this bundle:
 ```
 
 ```bash
-dsh plugin --profile acp-plus add /absolute/path/to/dsh-acp-paseo/packages/dsh-acp-plus
+dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
 dsh --profile acp-plus
 ```
 
-`@deepseek-ai/dsh-acp-app` must stay in the list: it inserts the stock `acp` row that this bundle's patch disables, and it provides the `acpAppStartup` gate that the `acp-plus` plugin injects. The package is not published to npm; install it from this workspace. `patchReload: "startup"` is appropriate because the bridge claims stdio once per process.
+`@deepseek-ai/dsh-acp-app` must stay in the list: it inserts the stock `acp` row that this bundle's patch disables, and it provides the `acpAppStartup` gate that the `acp-plus` plugin injects. The package is published to npm as `@ds-hu/dsh-acp-plus`. `patchReload: "startup"` is appropriate because the bridge claims stdio once per process.
 
 ## Config
 
@@ -52,7 +52,7 @@ The bundled patch inserts:
 
 - insert:
     - id: acp-plus
-      name: 'dsh-acp-plus'
+      name: '@ds-hu/dsh-acp-plus'
       inject: [acpAppStartup]
       config:
         provider: deepseek-official
@@ -107,12 +107,12 @@ Permissions are one-shot: the bridge offers `allow_once` versus a reject/cancel 
 ## Tests
 
 ```bash
-pnpm --filter dsh-acp-plus test        # unit tests under test/, integration excluded
-pnpm --filter dsh-acp-plus typecheck
+pnpm --filter @ds-hu/dsh-acp-plus test        # unit tests under test/, integration excluded
+pnpm --filter @ds-hu/dsh-acp-plus typecheck
 pnpm test:unit                         # all workspace unit projects
 pnpm test:integration                  # builds the package, then runs test/integration/
-DSH_ACP_LIVE=1 pnpm --filter dsh-acp-plus test:live   # real model turn + fork (opt-in)
+DSH_ACP_LIVE=1 pnpm --filter @ds-hu/dsh-acp-plus test:live   # real model turn + fork (opt-in)
 pnpm test                              # root vitest projects
 ```
 
-The integration project needs the bundle built (`pnpm --filter dsh-acp-plus build`) because it boots a profile from `dist/`. It creates a throwaway `DSH_HOME`, symlinks this package into `profiles/acp-plus/node_modules/`, and drives `dsh --profile acp-plus` over stdio. The live project copies the operator's credentials into a throwaway home, so the real one is never mutated.
+The integration project needs the bundle built (`pnpm --filter @ds-hu/dsh-acp-plus build`) because it boots a profile from `dist/`. It creates a throwaway `DSH_HOME`, symlinks this package into `profiles/acp-plus/node_modules/`, and drives `dsh --profile acp-plus` over stdio. The live project copies the operator's credentials into a throwaway home, so the real one is never mutated.

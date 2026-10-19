@@ -1,7 +1,7 @@
 {
-  "name": "dsh-acp-plus",
-  "version": "0.1.0",
-  "description": "Lossless ACP v1 agent bridge for the DeepSeek Harness (bundle: dsh-acp-plus)",
+  "name": "@ds-hu/dsh-acp-plus",
+  "version": "0.2.0",
+  "description": "DSH bundle for the most feature-complete DeepSeek Harness – Paseo integration project.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,6 +17,30 @@
     "cordis.patch.yml",
     "README.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ds-hu/dsh-acp-paseo.git",
+    "directory": "packages/dsh-acp-plus"
+  },
+  "homepage": "https://github.com/ds-hu/dsh-acp-paseo#readme",
+  "bugs": {
+    "url": "https://github.com/ds-hu/dsh-acp-paseo/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "paseo",
+    "acp",
+    "agent-client-protocol",
+    "cordis-plugin",
+    "dsh-bundle"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -24,6 +48,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",

@@ -7,8 +7,8 @@ architecture, profile setup, build commands and test matrix.
 
 | Package | Runs in | Job |
 | --- | --- | --- |
-| [`dsh-acp-plus`](../packages/dsh-acp-plus/README.md) | DSH process | Serves ACP v1 on stdio. Projects durable DSH events to standard ACP updates and mirrors the native payloads in `_meta.dsh` and `_dsh/*`. |
-| [`paseo-provider-deepseek-harness`](../packages/paseo-provider/README.md) | Paseo daemon | Registers the `deepseek-harness` provider, launches `dsh --profile acp-plus`, renders the ACP projection and stores native payloads in a sidecar. |
+| [`@ds-hu/dsh-acp-plus`](../packages/dsh-acp-plus/README.md) | DSH process | Serves ACP v1 on stdio. Projects durable DSH events to standard ACP updates and mirrors the native payloads in `_meta.dsh` and `_dsh/*`. |
+| [`@ds-hu/dsh-acp-paseo`](PROVIDER.md) | Paseo daemon | Registers the `deepseek-harness` provider, launches `dsh --profile acp-plus`, renders the ACP projection and stores native payloads in a sidecar. |
 
 Paseo loads plugin modules from `client/`, `server/` or `shared/`. All provider
 code lives in `packages/paseo-provider/server/`; `index.server.ts` is the entry.
@@ -21,7 +21,7 @@ plugin compiler.
 Paseo Web / Desktop / mobile
         │  provider protocol
         ▼
-paseo-provider-deepseek-harness  (Paseo daemon plugin)
+@ds-hu/dsh-acp-paseo          (Paseo daemon plugin)
         │  ACP v1 over stdio
         ▼
 dsh --profile acp-plus           (one process per session)
@@ -63,7 +63,7 @@ pnpm test:integration     # real dsh --profile acp-plus on a throwaway DSH_HOME
 Optional live checks:
 
 ```bash
-DSH_ACP_LIVE=1 pnpm --filter dsh-acp-plus test:live
+DSH_ACP_LIVE=1 pnpm --filter @ds-hu/dsh-acp-plus test:live
 PASEO_E2E=1 pnpm e2e:paseo
 ```
 
@@ -84,7 +84,7 @@ the base, the ACP app and this bridge:
       "bundles": [
         "@deepseek-ai/dsh-base",
         "@deepseek-ai/dsh-acp-app",
-        "dsh-acp-plus"
+        "@ds-hu/dsh-acp-plus"
       ],
       "patchReload": "startup"
     }
@@ -95,10 +95,10 @@ the base, the ACP app and this bridge:
 `@deepseek-ai/dsh-acp-app` supplies the `acpAppStartup` gate and inserts the
 stock `acp` row that the bundle patch disables. Keep it in the list.
 
-Link the bundle into the profile:
+Link the published bundle into the profile:
 
 ```bash
-dsh plugin --profile acp-plus add /absolute/path/to/packages/dsh-acp-plus
+dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
 ```
 
 Then confirm the profile starts and exits cleanly on EOF:
@@ -113,21 +113,15 @@ right setting.
 ## Install the Paseo plugin
 
 ```bash
-paseo plugin install /absolute/path/to/packages/paseo-provider
+paseo plugin install npm:@ds-hu/dsh-acp-paseo
 ```
 
-Enable plugins globally and configure the provider in `~/.paseo/config.json`:
+`paseo plugin install` writes the plugin entry. Enable plugins globally and
+configure the provider in `~/.paseo/config.json`:
 
 ```json
 {
   "pluginsEnabled": true,
-  "plugins": {
-    "deepseek-harness-provider": {
-      "source": "directory",
-      "path": "/absolute/path/to/packages/paseo-provider",
-      "enabled": true
-    }
-  },
   "agents": {
     "providers": {
       "deepseek-harness": {
@@ -189,6 +183,32 @@ The screenshots in the main README were produced with this flow against
 
 The full ACP method table, `_meta` envelope and extension list live in
 [`packages/dsh-acp-plus/README.md`](../packages/dsh-acp-plus/README.md).
+
+## Publishing
+
+| npm package | Contents |
+| --- | --- |
+| [`@ds-hu/dsh-acp-plus`](https://www.npmjs.com/package/@ds-hu/dsh-acp-plus) | DSH bundle: `dist/`, `cordis.patch.yml`, bundle README. |
+| [`@ds-hu/dsh-acp-paseo`](https://www.npmjs.com/package/@ds-hu/dsh-acp-paseo) | Paseo plugin: `index.server.ts`, `server/`, `paseo-plugin.json`, `icon.svg`, repository README. |
+
+Both are public scoped packages. The old unscoped `dsh-acp-paseo` is deprecated:
+npm cannot rename an unscoped package into a scope, so the current release uses
+new scoped names.
+
+```bash
+pnpm test
+pnpm test:integration
+pnpm sync:npm-readme          # regenerate the package README with absolute links
+pnpm -r build
+(cd packages/dsh-acp-plus && npm publish --access public)
+(cd packages/paseo-provider && npm publish --access public)
+```
+
+The `@ds-hu` org uses staged publishing, so `npm publish` may first create a
+`0.0.0-stage` placeholder while the real version is validated; `npm stage list`
+and `npm stage approve <id>` (or the npm website) manage the queue. A new
+package can take a few minutes to appear in registry metadata even after a
+successful publish.
 
 ## Design records
 

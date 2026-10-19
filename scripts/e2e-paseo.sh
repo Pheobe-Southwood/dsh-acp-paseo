@@ -26,7 +26,7 @@ echo "== build"
 pnpm -r build
 
 echo "== live DSH bridge turn (real model)"
-DSH_ACP_LIVE=1 pnpm --filter dsh-acp-plus test:live
+DSH_ACP_LIVE=1 pnpm --filter @ds-hu/dsh-acp-plus test:live
 
 if [[ "${PASEO_CLI_E2E:-}" != "1" ]]; then
   echo "note: set PASEO_CLI_E2E=1 to also install the provider into a throwaway PASEO_HOME" >&2

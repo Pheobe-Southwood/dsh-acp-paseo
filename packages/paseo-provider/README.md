@@ -1,113 +1,279 @@
-# paseo-provider-deepseek-harness
+# dsh-acp-paseo
 
-An out-of-tree Paseo plugin that registers the provider `deepseek-harness` and drives the DeepSeek Harness over ACP.
+**DeepSeek Harness in Paseo.** Add the DSH bundle and the Paseo plugin from npm,
+then use DSH models, tools, reasoning, questions and one-shot approvals inside
+Paseo's normal chat UI.
 
-It is a direct `ProviderRegistration`, not the `runAcpProvider` shim, because the plugin needs native question cards, a durable `_meta` sidecar, and faithful ACP config-option mapping.
+[English](#english) · [中文](#中文) · [日本語](#日本語) · [Français](#français) · [한국어](#한국어)
 
-## Install
+npm: [@ds-hu/dsh-acp-paseo](https://www.npmjs.com/package/@ds-hu/dsh-acp-paseo) · [@ds-hu/dsh-acp-plus](https://www.npmjs.com/package/@ds-hu/dsh-acp-plus)
 
-The plugin manifest is `paseo-plugin.json` (`id: "deepseek-harness-provider"`, `requirements.paseo: ">=0.12.0-beta.3"`), and the server entry is `index.server.ts`:
+## English
 
-```ts
-export default function contribute(server: PluginServerContext) {
-  server.registerProvider(createDeepseekHarnessProvider());
-  return () => {};
-}
-```
+### What you get
 
-Paseo compiles plugin modules from `client/`, `server/` or `shared/`. The
-provider implementation lives in `server/`, and `index.server.ts` imports
-`./server/provider.js`. A module directly under the plugin root fails the
-compiler before the plugin can load.
+- **DeepSeek Harness** joins Paseo's provider list, and the models from your DSH profile appear automatically.
+- Tool calls, reasoning, diffs and token usage use Paseo's normal timeline.
+- DSH questions become native Paseo cards. Tool approvals apply to one action only.
+- Sessions keep their DSH session id, so they reopen after a reload.
+- Paseo Web, Desktop and mobile all drive the same daemon.
 
-```bash
-paseo plugin install /absolute/path/to/dsh-acp-paseo/packages/paseo-provider
-```
+![DeepSeek Harness models in Paseo](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/provider-models.png)
 
-Then enable the provider in the Paseo config:
+*The models exposed by the DSH profile are ready to pick.*
 
-```json
-{
-  "agents": {
-    "providers": {
-      "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
-    }
-  }
-}
-```
+### How to use
 
-`requiresConfiguration` is `true`, and the default command is `['dsh', '--profile', 'acp-plus']` (`DEFAULT_COMMAND`), so the `command` entry can be omitted when that default is what you want.
+1. Create the DSH `acp-plus` profile once, then add the npm bundle:
 
-## Advertised capabilities
+   ```bash
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
+   ```
 
-Always offered: `prompt.message`, `prompt.command`, `permission`, `permission.tool_policy`, `session.configure`, `session.list`, `session.persistence`. `prompt.image` is added when a cached capability probe reports that the agent accepts image prompts. The final set is the intersection with what Paseo offers, computed by `negotiateProviderCapabilities()`.
+2. Install the Paseo plugin from npm:
 
-`permission.tool_policy` is required rather than optional: Paseo's `requiredProviderCapabilities()` adds it for `session.open` whenever the session config carries a `toolPolicy`, and `requireProviderCapabilities()` throws if the provider did not advertise it. Since this provider accepts `toolPolicy`, it must advertise the capability.
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
 
-The probe spawns the agent once per launch command, calls `initialize`, and reads `promptCapabilities.image` and `loadSession`; results are cached per command string.
+3. Add the provider entry under `agents.providers` in `~/.paseo/config.json`:
 
-## Sidecar meta log
+   ```json
+   "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
+   ```
 
-Every raw ACP payload that carries DSH semantics is appended verbatim to:
+4. Enable the plugin in **Settings → Plugins**, then choose **DeepSeek Harness** in a new agent.
 
-```
-${PASEO_HOME:-~/.paseo}/plugin-data/deepseek-harness/sessions/<sessionId>.meta.jsonl
-```
+The `acp-plus` profile is a one-time setup. The exact profile, build commands
+and test matrix are in the [technical guide](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md).
 
-Each line is `{v: 1, seq, ts, src, payload}` where `src` is one of `event`, `frame`, `update`, `request`, `response` or `unknown`. Writes are best-effort and never throw, so a storage failure cannot fail a turn. The file is capped at 64 MiB (`DEFAULT_MAX_BYTES`); once the cap is reached a `{v: 1, truncated: true, ts}` marker is appended and later records are dropped. The file path and counters travel in the persistence handle as `metaLog: {schema: "dsh-meta@1", file, count, bytes, truncated?}`.
+![A DSH turn in Paseo](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/chat.png)
 
-This directory is created and owned by the plugin; Paseo does not manage it.
+*A real turn: shell tool call, reasoning, answer, token usage and session controls.*
 
-## Timeline mapping
+![Native DSH question card](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/questions.png)
 
-| ACP update | Paseo result |
-| --- | --- |
-| `user_message_chunk` | `user_message` timeline item (text accumulated per `messageId`). |
-| `agent_message_chunk` | `assistant_message` timeline item. |
-| `agent_thought_chunk` | `reasoning` timeline item. |
-| `tool_call` / `tool_call_update` | `tool_call` timeline item, updated in place. |
-| `plan` | `todo` timeline item. |
-| `available_commands_update` | `session.commands` event. |
-| `config_option_update` | `session.config` event. |
-| `usage_update` | `session.usage` event. |
-| `compaction_update` | `compaction` timeline item. |
-| anything else | Stored in the sidecar and skipped; never rendered and never breaks the session. |
+*DSH asks, and Paseo shows its own card with options, free text and Submit.*
 
-`_meta.dsh`, `_dsh/event` and `_dsh/frame` payloads are stored and not rendered in v1 (see `docs/adr/0004-store-dont-render.md`).
+![One-shot tool approval](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/permissions.png)
 
-## Question cards
+*A command outside the workspace waits for approval. Allow once, or reject and keep the workspace unchanged.*
 
-A `_dsh/user_questions` request becomes a `session.permission` request with `kind: "question"` and Paseo's native question form:
+---
 
-```json
-{
-  "questions": [
-    {
-      "question": "…",
-      "header": "…",
-      "options": [{ "label": "…", "description": "…" }],
-      "multiSelect": false,
-      "allowOther": true,
-      "allowEmpty": false,
-      "placeholder": "…"
-    }
-  ]
-}
-```
+## 中文
 
-The actions are `answer` (allow, primary) and `dismiss` (deny, secondary). Paseo returns `updatedInput.answers` as a `Record<header, string>` with selected option labels joined by `", "`; the provider maps that back to DSH's `{id, selected[], custom?}` shape, treating unmatched trailing text as `custom`. A dismissed card, a cancelled request or a timeout resolves as deny, and the bridge reports a question failure to the model instead of hanging.
+### 带来什么
 
-Tool permissions use the same `session.permission` channel with `kind: "tool"`; an allow response selects the requested option id, and a deny response is reported as `cancelled`.
+- Paseo 的 Provider 列表新增 **DeepSeek Harness**，DSH profile 里的模型会自动出现。
+- 工具调用、思考过程、Diff 和 Token 用量直接进入 Paseo 原有时间线。
+- DSH 的提问变成 Paseo 原生问题卡片；工具审批只对当前操作生效。
+- 会话保留 DSH 的 session id，刷新页面后可以接着聊。
+- Paseo 网页版、桌面版和手机版共用同一个 daemon。
 
-## Persistence handle
+![Paseo 中的 DeepSeek Harness 模型](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/provider-models.png)
 
-The provider stores `nativeSessionId`, `dshCwd` and the meta-log pointer in `{version: 1, data: {…}}` and emits it as `session.persistence`. On restore, `session.open` carries the handle back; the provider calls ACP `session/load` (or `session/resume` when no replay is wanted) with that native session id.
+*插件安装后自动发现 DSH profile 提供的模型，直接在选择器里使用。*
 
-## Tests
+### 怎么用
 
-```bash
-pnpm --filter paseo-provider test      # vitest, includes test/**/*.test.ts
-pnpm --filter paseo-provider typecheck
-```
+1. 按[技术文档](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md)创建一次 DSH 的 `acp-plus` profile，然后加入 npm 包：
 
-`test/fake-agent.ts` provides a scripted ACP peer so the provider can be exercised without a real harness process; emitted provider events are validated against the published `ProviderEventSchema`.
+   ```bash
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
+   ```
+
+2. 从 npm 安装 Paseo 插件：
+
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
+
+3. 在 `~/.paseo/config.json` 的 `agents.providers` 下加入：
+
+   ```json
+   "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
+   ```
+
+4. 打开 **Settings → Plugins** 启用插件，新建 Agent 时选择 **DeepSeek Harness**。
+
+`acp-plus` profile 只需配置一次，完整步骤见[技术文档](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md)。
+
+![Paseo 中的一次 DSH 对话](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/chat.png)
+
+*真实对话：Shell 工具调用、思考过程、回答、Token 用量和会话控制都在同一屏。*
+
+![DSH 原生问题卡片](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/questions.png)
+
+*DSH 发起提问，Paseo 用原生卡片展示选项、自由输入和提交按钮。*
+
+![一次性工具审批](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/permissions.png)
+
+*工作区之外的命令会等待审批。允许一次，或者拒绝并保持工作区不变。*
+
+---
+
+## 日本語
+
+### できること
+
+- Paseo のプロバイダー一覧に **DeepSeek Harness** が加わり、DSH プロファイルのモデルが自動で見つかります。
+- ツール呼び出し、思考、差分、トークン使用量は Paseo のタイムラインにそのまま表示されます。
+- DSH の質問は Paseo の質問カードになり、ツール承認は1回の操作だけに適用されます。
+- セッションは DSH の session id を保持し、再読み込み後も続きから使えます。
+- Paseo の Web、デスクトップ、モバイルは同じ daemon につながります。
+
+![Paseo の DeepSeek Harness モデル](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/provider-models.png)
+
+*プロバイダーを追加すると DSH プロファイルのモデルが見つかり、そのまま選べます。*
+
+### 使い方
+
+1. [技術ガイド](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md)の手順で DSH の `acp-plus` プロファイルを一度作成し、npm パッケージを追加します:
+
+   ```bash
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
+   ```
+
+2. npm から Paseo プラグインをインストールします:
+
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
+
+3. `~/.paseo/config.json` の `agents.providers` に追加します:
+
+   ```json
+   "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
+   ```
+
+4. **Settings → Plugins** で有効にし、新しい Agent で **DeepSeek Harness** を選びます。
+
+`acp-plus` プロファイルの作成は初回のみです。詳細は[技術ガイド](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md)にあります。
+
+![Paseo での DSH の会話](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/chat.png)
+
+*実際の会話: シェルツール、思考、回答、トークン使用量、セッション操作が1画面に収まります。*
+
+![DSH の質問カード](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/questions.png)
+
+*DSH の質問を Paseo のカードで表示し、選択肢、自由入力、送信をそのまま使えます。*
+
+![1回限りのツール承認](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/permissions.png)
+
+*ワークスペース外のコマンドは承認待ちになります。1回だけ許可するか、拒否して変更を残さないかを選べます。*
+
+---
+
+## Français
+
+### Ce que vous obtenez
+
+- **DeepSeek Harness** rejoint la liste des fournisseurs Paseo, et les modèles de votre profil DSH sont détectés automatiquement.
+- Les appels d'outils, le raisonnement, les diffs et l'usage des tokens restent dans la timeline habituelle de Paseo.
+- Les questions DSH deviennent des cartes Paseo. Les approbations d'outils valent pour une seule action.
+- Les sessions gardent leur identifiant DSH et reprennent après un rechargement.
+- Paseo Web, Desktop et mobile utilisent le même daemon.
+
+![Modèles DeepSeek Harness dans Paseo](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/provider-models.png)
+
+*Les modèles exposés par le profil DSH sont prêts à être choisis.*
+
+### Utilisation
+
+1. Créez une fois le profil DSH `acp-plus` (voir le [guide technique](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md)), puis ajoutez le paquet npm :
+
+   ```bash
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
+   ```
+
+2. Installez le plugin Paseo depuis npm :
+
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
+
+3. Ajoutez l'entrée sous `agents.providers` dans `~/.paseo/config.json` :
+
+   ```json
+   "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
+   ```
+
+4. Activez le plugin dans **Settings → Plugins**, puis choisissez **DeepSeek Harness** dans un nouvel agent.
+
+Le profil `acp-plus` se configure une fois. Le profil complet, les commandes
+de build et la matrice de tests sont dans le [guide technique](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md).
+
+![Une conversation DSH dans Paseo](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/chat.png)
+
+*Une conversation réelle : appel shell, raisonnement, réponse, usage des tokens et contrôles de session.*
+
+![Carte de question DSH](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/questions.png)
+
+*DSH pose une question ; Paseo affiche sa carte avec options, texte libre et validation.*
+
+![Approbation d'outil unique](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/permissions.png)
+
+*Une commande hors du workspace attend une approbation. Autorisez une fois, ou refusez sans modifier le workspace.*
+
+---
+
+## 한국어
+
+### 제공하는 것
+
+- Paseo 공급자 목록에 **DeepSeek Harness**가 추가되고 DSH 프로필의 모델이 자동으로 검색됩니다.
+- 도구 호출, 사고 과정, diff, 토큰 사용량이 Paseo의 기존 타임라인에 그대로 표시됩니다.
+- DSH의 질문은 Paseo 질문 카드로 표시되고, 도구 승인은 한 번의 작업에만 적용됩니다.
+- 세션은 DSH session id를 유지하므로 새로고침 후에도 이어서 사용할 수 있습니다.
+- Paseo Web, 데스크톱, 모바일은 같은 daemon을 사용합니다.
+
+![Paseo의 DeepSeek Harness 모델](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/provider-models.png)
+
+*공급자를 추가하면 DSH 프로필의 모델이 자동으로 검색되어 바로 선택할 수 있습니다.*
+
+### 사용 방법
+
+1. [기술 문서](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md)의 절차로 DSH `acp-plus` 프로필을 한 번 만든 뒤 npm 패키지를 추가합니다:
+
+   ```bash
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
+   ```
+
+2. npm에서 Paseo 플러그인을 설치합니다:
+
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
+
+3. `~/.paseo/config.json`의 `agents.providers`에 항목을 추가합니다:
+
+   ```json
+   "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
+   ```
+
+4. **Settings → Plugins**에서 플러그인을 켜고 새 Agent에서 **DeepSeek Harness**를 선택합니다.
+
+`acp-plus` 프로필은 한 번만 설정하면 됩니다. 전체 절차와 빌드, 테스트
+방법은 [기술 문서](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md)에 있습니다.
+
+![Paseo에서의 DSH 대화](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/chat.png)
+
+*실제 대화: 셸 도구 호출, 사고 과정, 답변, 토큰 사용량, 세션 제어가 한 화면에 표시됩니다.*
+
+![DSH 질문 카드](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/questions.png)
+
+*DSH가 질문하면 Paseo 카드에서 선택지, 직접 입력, 제출을 그대로 사용할 수 있습니다.*
+
+![일회성 도구 승인](https://raw.githubusercontent.com/ds-hu/dsh-acp-paseo/main/docs/images/permissions.png)
+
+*작업 공간 밖의 명령은 승인을 기다립니다. 한 번만 허용하거나 거부해 작업 공간을 그대로 둘 수 있습니다.*
+
+---
+
+## Technical details
+
+Build steps, profile setup, the test matrix and design records:
+[docs/TECHNICAL.md](https://github.com/ds-hu/dsh-acp-paseo/blob/main/docs/TECHNICAL.md).
+
+MIT licensed. See [LICENSE](https://github.com/ds-hu/dsh-acp-paseo/blob/main/LICENSE) and [THIRD_PARTY_NOTICES.md](https://github.com/ds-hu/dsh-acp-paseo/blob/main/THIRD_PARTY_NOTICES.md).

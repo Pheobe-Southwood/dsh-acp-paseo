@@ -1,17 +1,42 @@
 {
-  "name": "paseo-provider-deepseek-harness",
-  "version": "0.1.0",
-  "description": "Paseo provider plugin that drives the DeepSeek Harness over ACP (provider id: deepseek-harness)",
+  "name": "@ds-hu/dsh-acp-paseo",
+  "version": "0.2.0",
+  "description": "The most feature-complete DeepSeek Harness – Paseo integration project.",
   "license": "MIT",
   "type": "module",
   "files": [
     "index.server.ts",
     "server",
     "paseo-plugin.json",
+    "icon.svg",
     "README.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ds-hu/dsh-acp-paseo.git",
+    "directory": "packages/paseo-provider"
+  },
+  "homepage": "https://github.com/ds-hu/dsh-acp-paseo#readme",
+  "bugs": {
+    "url": "https://github.com/ds-hu/dsh-acp-paseo/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "paseo",
+    "paseo-plugin",
+    "acp",
+    "agent-client-protocol"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
+    "prepack": "node ../../scripts/sync-npm-readme.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },

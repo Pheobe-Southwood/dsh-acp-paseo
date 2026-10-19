@@ -12,8 +12,9 @@
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "test:unit": "vitest run --project dsh-acp-plus --project paseo-provider --project contract",
-    "test:integration": "pnpm --filter dsh-acp-plus build && pnpm --filter dsh-acp-plus test:integration",
+    "test:integration": "pnpm --filter @ds-hu/dsh-acp-plus build && pnpm --filter @ds-hu/dsh-acp-plus test:integration",
     "e2e:paseo": "bash scripts/e2e-paseo.sh",
+    "sync:npm-readme": "node scripts/sync-npm-readme.mjs",
     "clean": "rm -rf packages/*/dist .tmp"
   },
   "devDependencies": {

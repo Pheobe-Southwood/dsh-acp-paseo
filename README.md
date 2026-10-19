@@ -1,9 +1,12 @@
 # dsh-acp-paseo
 
-**DeepSeek Harness in Paseo.** Install one plugin, then use DSH models, tools,
-reasoning, questions and one-shot approvals inside Paseo's normal chat UI.
+**DeepSeek Harness in Paseo.** Add the DSH bundle and the Paseo plugin from npm,
+then use DSH models, tools, reasoning, questions and one-shot approvals inside
+Paseo's normal chat UI.
 
 [English](#english) · [中文](#中文) · [日本語](#日本語) · [Français](#français) · [한국어](#한국어)
+
+npm: [@ds-hu/dsh-acp-paseo](https://www.npmjs.com/package/@ds-hu/dsh-acp-paseo) · [@ds-hu/dsh-acp-plus](https://www.npmjs.com/package/@ds-hu/dsh-acp-plus)
 
 ## English
 
@@ -21,21 +24,27 @@ reasoning, questions and one-shot approvals inside Paseo's normal chat UI.
 
 ### How to use
 
-1. Install the plugin:
+1. Create the DSH `acp-plus` profile once, then add the npm bundle:
 
    ```bash
-   paseo plugin install /path/to/packages/paseo-provider
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
    ```
 
-2. Add the provider entry under `agents.providers` in `~/.paseo/config.json`:
+2. Install the Paseo plugin from npm:
+
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
+
+3. Add the provider entry under `agents.providers` in `~/.paseo/config.json`:
 
    ```json
    "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
    ```
 
-3. Enable the plugin in **Settings → Plugins**, then choose **DeepSeek Harness** in a new agent.
+4. Enable the plugin in **Settings → Plugins**, then choose **DeepSeek Harness** in a new agent.
 
-The DSH `acp-plus` profile takes one setup. The exact profile, build commands
+The `acp-plus` profile is a one-time setup. The exact profile, build commands
 and test matrix are in the [technical guide](docs/TECHNICAL.md).
 
 ![A DSH turn in Paseo](docs/images/chat.png)
@@ -68,21 +77,27 @@ and test matrix are in the [technical guide](docs/TECHNICAL.md).
 
 ### 怎么用
 
-1. 安装插件：
+1. 按[技术文档](docs/TECHNICAL.md)创建一次 DSH 的 `acp-plus` profile，然后加入 npm 包：
 
    ```bash
-   paseo plugin install /path/to/packages/paseo-provider
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
    ```
 
-2. 在 `~/.paseo/config.json` 的 `agents.providers` 下加入：
+2. 从 npm 安装 Paseo 插件：
+
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
+
+3. 在 `~/.paseo/config.json` 的 `agents.providers` 下加入：
 
    ```json
    "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
    ```
 
-3. 打开 **Settings → Plugins** 启用插件，新建 Agent 时选择 **DeepSeek Harness**。
+4. 打开 **Settings → Plugins** 启用插件，新建 Agent 时选择 **DeepSeek Harness**。
 
-DSH 的 `acp-plus` profile 只需配置一次，完整步骤见 [技术文档](docs/TECHNICAL.md)。
+`acp-plus` profile 只需配置一次，完整步骤见[技术文档](docs/TECHNICAL.md)。
 
 ![Paseo 中的一次 DSH 对话](docs/images/chat.png)
 
@@ -114,22 +129,27 @@ DSH 的 `acp-plus` profile 只需配置一次，完整步骤见 [技术文档](d
 
 ### 使い方
 
-1. プラグインをインストールします:
+1. [技術ガイド](docs/TECHNICAL.md)の手順で DSH の `acp-plus` プロファイルを一度作成し、npm パッケージを追加します:
 
    ```bash
-   paseo plugin install /path/to/packages/paseo-provider
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
    ```
 
-2. `~/.paseo/config.json` の `agents.providers` に追加します:
+2. npm から Paseo プラグインをインストールします:
+
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
+
+3. `~/.paseo/config.json` の `agents.providers` に追加します:
 
    ```json
    "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
    ```
 
-3. **Settings → Plugins** で有効にし、新しい Agent で **DeepSeek Harness** を選びます。
+4. **Settings → Plugins** で有効にし、新しい Agent で **DeepSeek Harness** を選びます。
 
-DSH の `acp-plus` プロファイルは初回だけ設定します。手順の詳細は
-[技術ガイド](docs/TECHNICAL.md) にあります。
+`acp-plus` プロファイルの作成は初回のみです。詳細は[技術ガイド](docs/TECHNICAL.md)にあります。
 
 ![Paseo での DSH の会話](docs/images/chat.png)
 
@@ -161,21 +181,27 @@ DSH の `acp-plus` プロファイルは初回だけ設定します。手順の�
 
 ### Utilisation
 
-1. Installez le plugin :
+1. Créez une fois le profil DSH `acp-plus` (voir le [guide technique](docs/TECHNICAL.md)), puis ajoutez le paquet npm :
 
    ```bash
-   paseo plugin install /path/to/packages/paseo-provider
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
    ```
 
-2. Ajoutez l'entrée sous `agents.providers` dans `~/.paseo/config.json` :
+2. Installez le plugin Paseo depuis npm :
+
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
+
+3. Ajoutez l'entrée sous `agents.providers` dans `~/.paseo/config.json` :
 
    ```json
    "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
    ```
 
-3. Activez le plugin dans **Settings → Plugins**, puis choisissez **DeepSeek Harness** dans un nouvel agent.
+4. Activez le plugin dans **Settings → Plugins**, puis choisissez **DeepSeek Harness** dans un nouvel agent.
 
-Le profil DSH `acp-plus` se configure une fois. Le profil complet, les commandes
+Le profil `acp-plus` se configure une fois. Le profil complet, les commandes
 de build et la matrice de tests sont dans le [guide technique](docs/TECHNICAL.md).
 
 ![Une conversation DSH dans Paseo](docs/images/chat.png)
@@ -208,22 +234,28 @@ de build et la matrice de tests sont dans le [guide technique](docs/TECHNICAL.md
 
 ### 사용 방법
 
-1. 플러그인을 설치합니다:
+1. [기술 문서](docs/TECHNICAL.md)의 절차로 DSH `acp-plus` 프로필을 한 번 만든 뒤 npm 패키지를 추가합니다:
 
    ```bash
-   paseo plugin install /path/to/packages/paseo-provider
+   dsh plugin --profile acp-plus add @ds-hu/dsh-acp-plus
    ```
 
-2. `~/.paseo/config.json`의 `agents.providers`에 항목을 추가합니다:
+2. npm에서 Paseo 플러그인을 설치합니다:
+
+   ```bash
+   paseo plugin install npm:@ds-hu/dsh-acp-paseo
+   ```
+
+3. `~/.paseo/config.json`의 `agents.providers`에 항목을 추가합니다:
 
    ```json
    "deepseek-harness": { "command": ["dsh", "--profile", "acp-plus"] }
    ```
 
-3. **Settings → Plugins**에서 플러그인을 켜고 새 Agent에서 **DeepSeek Harness**를 선택합니다.
+4. **Settings → Plugins**에서 플러그인을 켜고 새 Agent에서 **DeepSeek Harness**를 선택합니다.
 
-DSH의 `acp-plus` 프로필은 한 번만 설정하면 됩니다. 전체 절차와 빌드,
-테스트 방법은 [기술 문서](docs/TECHNICAL.md)에 있습니다.
+`acp-plus` 프로필은 한 번만 설정하면 됩니다. 전체 절차와 빌드, 테스트
+방법은 [기술 문서](docs/TECHNICAL.md)에 있습니다.
 
 ![Paseo에서의 DSH 대화](docs/images/chat.png)
 

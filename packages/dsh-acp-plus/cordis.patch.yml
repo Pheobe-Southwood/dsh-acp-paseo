@@ -10,7 +10,7 @@
 
 - insert:
     - id: acp-plus
-      name: 'dsh-acp-plus'
+      name: '@ds-hu/dsh-acp-plus'
       inject: [acpAppStartup]
       config:
         provider: deepseek-official
