@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "dsh": {
+      "v": 1,
+      "kind": "update.tool_call",
+      "native": {
+        "type": "tool/call",
+        "seq": 42,
+        "time": 1767225600000,
+        "data": { "callId": "call-1", "name": "read_file", "arguments": "{\"file_path\":\"/tmp/a.txt\"}" }
+      },
+      "turn": 1,
+      "step": 2,
+      "toolName": "read_file",
+      "callId": "call-1"
+    }
+  },
+  "event": {
+    "v": 1,
+    "sessionId": "0b5f2f1a-6c2f-4f4e-9a1f-6a2f9c1d2e3f",
+    "event": { "type": "turn/end", "seq": 43, "time": 1767225601000, "data": { "reason": { "kind": "completed" } } }
+  },
+  "frame": {
+    "v": 1,
+    "sessionId": "0b5f2f1a-6c2f-4f4e-9a1f-6a2f9c1d2e3f",
+    "frame": {
+      "type": "chunk",
+      "attemptId": "attempt-1",
+      "revision": 1,
+      "index": 0,
+      "turn": 1,
+      "step": 2,
+      "time": 1767225600000,
+      "chunk": { "type": "text-delta", "text": "hello" }
+    }
+  },
+  "questionsRequest": {
+    "v": 1,
+    "requestId": "question-1",
+    "sessionId": "0b5f2f1a-6c2f-4f4e-9a1f-6a2f9c1d2e3f",
+    "timeoutMs": 660000,
+    "questions": [
+      {
+        "id": "q1",
+        "header": "Target",
+        "question": "Which environment should I deploy to?",
+        "detail": "Defaults to staging",
+        "options": [{ "label": "staging" }, { "label": "production", "description": "Customer traffic" }],
+        "multiSelect": false
+      }
+    ]
+  },
+  "questionsResponse": {
+    "answers": [{ "id": "q1", "selected": ["production"] }]
+  },
+  "forkRequest": { "sessionId": "0b5f2f1a-6c2f-4f4e-9a1f-6a2f9c1d2e3f", "cwd": "/tmp/project" },
+  "forkResponse": {
+    "sessionId": "7c1e9b3d-2a4f-4c5b-8d6e-1f2a3b4c5d6e",
+    "configOptions": [],
+    "_meta": { "dsh": { "v": 1, "kind": "session-fork", "lineage": { "parentSessionId": "0b5f2f1a-6c2f-4f4e-9a1f-6a2f9c1d2e3f", "inheritedEventCount": 44 } } }
+  }
+}

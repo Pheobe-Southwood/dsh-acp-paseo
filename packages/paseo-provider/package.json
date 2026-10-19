@@ -1,0 +1,33 @@
+{
+  "name": "paseo-provider-deepseek-harness",
+  "version": "0.1.0",
+  "description": "Paseo provider plugin that drives the DeepSeek Harness over ACP (provider id: deepseek-harness)",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "index.server.ts",
+    "src",
+    "paseo-plugin.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "1.4.0"
+  },
+  "peerDependencies": {
+    "@getpaseo/client": "0.12.0-beta.3",
+    "@getpaseo/plugin": "0.12.0-beta.3",
+    "@getpaseo/protocol": "0.12.0-beta.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@getpaseo/client": "0.12.0-beta.3",
+    "@getpaseo/plugin": "0.12.0-beta.3",
+    "@getpaseo/protocol": "0.12.0-beta.3",
+    "zod": "^4.4.3"
+  }
+}

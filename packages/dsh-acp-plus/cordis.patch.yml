@@ -1,0 +1,26 @@
+# The lossless ACP application over `@deepseek-ai/dsh-acp-app`.
+#
+# `@deepseek-ai/dsh-acp-app` already inserted the stock `acp` row and provides
+# the `acpAppStartup` gate. This patch disables the stock bridge (it must exist
+# for the patch to apply) and inserts the lossless `acp-plus` bridge plus the
+# interactive-question tool that the bridge answers over `_dsh/user_questions`.
+
+- id: acp
+  disabled: true
+
+- insert:
+    - id: acp-plus
+      name: 'dsh-acp-plus'
+      inject: [acpAppStartup]
+      config:
+        provider: deepseek-official
+        model: deepseek-v4-flash
+
+    # `dsh-base` mounts the `user-questions` service seam; the model-facing tool
+    # is opt-in. `timed` lets the harness own the timeout (seconds), while the
+    # bridge keeps a slightly longer backstop for a vanished client.
+    - id: tool-ask-user
+      name: '@deepseek-ai/dsh-tool-ask-user'
+      config:
+        mode: timed
+        timeout: 600

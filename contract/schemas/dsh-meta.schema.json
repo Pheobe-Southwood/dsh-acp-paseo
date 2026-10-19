@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dsh-plugins/dsh-acp-paseo/contract/dsh-meta.schema.json",
+  "title": "DSH lossless ACP extension contract",
+  "description": "Versioned `_meta.dsh` envelopes and the `_dsh/*` extension payloads exchanged between dsh-acp-plus (agent) and the Paseo deepseek-harness provider (client). Unknown fields are always allowed so both sides can evolve without breaking the other.",
+  "type": "object",
+  "$defs": {
+    "metaEnvelope": {
+      "title": "_meta.dsh envelope",
+      "type": "object",
+      "required": ["v", "kind"],
+      "properties": {
+        "v": { "const": 1, "description": "Envelope schema version." },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable kind tag. Update envelopes use `update.<sessionUpdate>`; method envelopes use the method name, e.g. `session-new`, `prompt-result`, `permission-request`, `initialize`."
+        },
+        "native": {
+          "description": "The originating DSH object verbatim (durable event, stream frame, approval request, ...)."
+        }
+      },
+      "additionalProperties": true
+    },
+    "metaWrapper": {
+      "title": "ACP `_meta` object carrying a DSH envelope",
+      "type": "object",
+      "required": ["dsh"],
+      "properties": {
+        "dsh": { "$ref": "#/$defs/metaEnvelope" }
+      },
+      "additionalProperties": true
+    },
+    "eventNotification": {
+      "title": "_dsh/event notification params",
+      "type": "object",
+      "required": ["v", "sessionId", "event"],
+      "properties": {
+        "v": { "const": 1 },
+        "sessionId": { "type": "string", "minLength": 1 },
+        "event": {
+          "type": "object",
+          "required": ["type", "seq"],
+          "properties": {
+            "type": { "type": "string", "minLength": 1 },
+            "seq": { "type": "integer", "minimum": 0 },
+            "time": { "type": "number" },
+            "data": {}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "frameNotification": {
+      "title": "_dsh/frame notification params",
+      "type": "object",
+      "required": ["v", "sessionId", "frame"],
+      "properties": {
+        "v": { "const": 1 },
+        "sessionId": { "type": "string", "minLength": 1 },
+        "frame": {
+          "type": "object",
+          "required": ["type", "attemptId", "revision"],
+          "properties": {
+            "type": { "enum": ["start", "chunk", "end"] },
+            "attemptId": { "type": "string" },
+            "revision": { "type": "integer" },
+            "turn": { "type": "integer" },
+            "step": { "type": "integer" },
+            "index": { "type": "integer" },
+            "time": { "type": "number" },
+            "chunk": {},
+            "outcome": {}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "questionsRequest": {
+      "title": "_dsh/user_questions request params",
+      "type": "object",
+      "required": ["v", "requestId", "sessionId", "questions"],
+      "properties": {
+        "v": { "const": 1 },
+        "requestId": { "type": "string", "minLength": 1 },
+        "sessionId": { "type": "string", "minLength": 1 },
+        "timeoutMs": { "type": "integer", "minimum": 0 },
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "header", "question"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "header": { "type": "string", "minLength": 1 },
+              "question": { "type": "string" },
+              "detail": { "type": "string" },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["label"],
+                  "properties": {
+                    "label": { "type": "string" },
+                    "description": { "type": "string" }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "multiSelect": { "type": "boolean" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "questionsResponse": {
+      "title": "_dsh/user_questions response result",
+      "type": "object",
+      "required": ["answers"],
+      "properties": {
+        "answers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "selected"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "selected": { "type": "array", "items": { "type": "string" } },
+              "custom": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "forkRequest": {
+      "title": "_dsh/session/fork request params",
+      "type": "object",
+      "required": ["sessionId"],
+      "properties": {
+        "sessionId": { "type": "string", "minLength": 1 },
+        "cwd": { "type": "string" },
+        "atSeq": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "forkResponse": {
+      "title": "_dsh/session/fork response result",
+      "type": "object",
+      "required": ["sessionId"],
+      "properties": {
+        "sessionId": { "type": "string", "minLength": 1 },
+        "configOptions": { "type": "array" },
+        "_meta": { "$ref": "#/$defs/metaWrapper" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

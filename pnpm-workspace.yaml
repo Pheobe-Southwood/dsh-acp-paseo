@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@getpaseo/client@0.12.0-beta.3'
+  - '@getpaseo/plugin@0.12.0-beta.3'
+  - '@getpaseo/protocol@0.12.0-beta.3'
+  - '@getpaseo/relay@0.12.0-beta.3'

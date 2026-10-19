@@ -1,0 +1,9 @@
+{
+  "id": "deepseek-harness-provider",
+  "name": "DeepSeek Harness",
+  "description": "Run the DeepSeek Harness as a Paseo provider over ACP (lossless _meta, native questions).",
+  "version": "0.1.0",
+  "requirements": {
+    "paseo": ">=0.12.0-beta.3"
+  }
+}
