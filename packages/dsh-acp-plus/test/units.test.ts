@@ -19,6 +19,7 @@ import {
   updateMeta,
 } from '../src/meta.js';
 import { mcpPluginConfig, resolveMcpConfigs } from '../src/mcp.js';
+import { buildSessionModes } from '../src/modes.js';
 import { StreamAccumulator } from '../src/stream.js';
 import {
   inferToolKind,
@@ -363,5 +364,46 @@ describe('config options', () => {
       ContentError,
     );
     expect(() => applyConfigOption({ get: () => undefined } as any, record, 'nope', 'x')).toThrow(ContentError);
+  });
+});
+
+describe('agent presets as session modes', () => {
+  it('returns undefined when the profile declares no preset registry', async () => {
+    expect(await buildSessionModes({ get: () => undefined } as any, {})).toBeUndefined();
+  });
+
+  it('labels the four DSH presets and follows the composed preset', async () => {
+    const presets = {
+      defaultId: 'standard',
+      list: async () => [{ id: 'standard' }, { id: 'ptc' }, { id: 'minimal' }, { id: 'cordis' }],
+      composedPreset: () => 'minimal',
+    };
+    const modes = await buildSessionModes({ get: () => presets } as any, { agent: { ctx: {} } });
+    expect(modes?.currentModeId).toBe('minimal');
+    expect(modes?.availableModes.map((mode) => mode.name)).toEqual([
+      'Standard mode',
+      'PTC mode',
+      'Minimal mode',
+      'Creator mode',
+    ]);
+    expect(modes?.availableModes.every((mode) => typeof mode.description === 'string')).toBe(true);
+  });
+
+  it('keeps custom names, drops broken presets, and falls back to the first usable mode', async () => {
+    const presets = {
+      defaultId: 'gone',
+      list: async () => [
+        { id: 'broken', name: 'Broken', broken: { reason: 'missing plugin' } },
+        { id: 'first' },
+        { id: 'custom', name: 'Team mode', description: 'House rules' },
+      ],
+      composedPreset: () => 'gone',
+    };
+    const modes = await buildSessionModes({ get: () => presets } as any, {});
+    expect(modes?.availableModes).toEqual([
+      { id: 'first', name: 'first' },
+      { id: 'custom', name: 'Team mode', description: 'House rules' },
+    ]);
+    expect(modes?.currentModeId).toBe('first');
   });
 });

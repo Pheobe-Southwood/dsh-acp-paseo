@@ -94,12 +94,14 @@ export function createAcpPlusServer(options: ServerOptions): AcpPlusServer {
   app.onRequest('session/list', async ({ params }) => bridge.listSessions(params));
   app.onRequest('session/close', async ({ params }) => bridge.closeSession(params));
   app.onRequest('session/set_config_option', async ({ params }) => bridge.setConfigOption(params));
+  app.onRequest('session/set_mode', async ({ params }) => bridge.setMode(params));
   app.onRequest('session/prompt', async ({ params }) => bridge.prompt(params));
   app.onRequest('session/fork', async ({ params }) => {
     const result = await bridge.fork(params);
     return {
       sessionId: result.sessionId,
       ...(result.configOptions ? { configOptions: result.configOptions } : {}),
+      ...(result.modes ? { modes: result.modes } : {}),
       _meta: result._meta,
     };
   });

@@ -5,7 +5,7 @@ import { ProviderEventSchema, ProviderInputSchema } from '@getpaseo/plugin/serve
 import { describe, expect, it, vi } from 'vitest';
 import { AcpSessionClient } from '../server/acp-client.js';
 import { createConnection } from '../server/connection.js';
-import { createFakeAgent, type FakeAgentHooks } from './fake-agent.js';
+import { createFakeAgent, defaultModes, type FakeAgentHooks } from './fake-agent.js';
 
 const CAPABILITIES = [
   'prompt.message',
@@ -275,6 +275,48 @@ describe('paseo provider connection', () => {
     const config = events.filter((event) => event.type === 'session.config').at(-1);
     expect(config.config.model).toBe('deepseek-v4-pro');
     expect(events.some((event) => event.type === 'request.completed' && event.requestId === 'cfg-1')).toBe(true);
+    assertSchema(events);
+  });
+
+  it('exposes DSH presets as catalog modes and applies mode changes', async () => {
+    const applied: string[] = [];
+    const { events, send } = await harness({
+      modes: defaultModes(),
+      onSetMode: ({ params }) => applied.push(String(params.modeId)),
+    });
+    await send({ type: 'catalog', requestId: 'cat-1', cwd: '/tmp/project' });
+    const catalog = events.find((event) => event.type === 'catalog');
+    expect(catalog.catalog.modes.map((mode: any) => mode.id)).toEqual(['standard', 'ptc', 'minimal', 'cordis']);
+    expect(catalog.catalog.defaultMode).toBe('standard');
+
+    await send({ type: 'session.open', requestId: 'open-m', sessionId: 'paseo-m', config: sessionConfig({ mode: 'ptc' }), history: 'skip' });
+    expect(applied).toContain('ptc');
+    expect(events.filter((event) => event.type === 'session.config').at(-1).config.mode).toBe('ptc');
+
+    await send({ type: 'session.configure', requestId: 'cfg-m', sessionId: 'paseo-m', changes: { mode: 'minimal' } });
+    expect(applied).toContain('minimal');
+    expect(events.filter((event) => event.type === 'session.config').at(-1).config.mode).toBe('minimal');
+    assertSchema(events);
+  });
+
+  it('reflects an agent-initiated current_mode_update in session config', async () => {
+    const { events, send } = await harness({
+      modes: defaultModes(),
+      onPrompt: async ({ params, client }) => {
+        await client.notify('session/update', {
+          sessionId: params.sessionId,
+          update: { sessionUpdate: 'current_mode_update', currentModeId: 'cordis' },
+        });
+      },
+    });
+    await send({ type: 'session.open', requestId: 'open-mode', sessionId: 'paseo-mode', config: sessionConfig(), history: 'skip' });
+    await send({
+      type: 'session.prompt',
+      sessionId: 'paseo-mode',
+      prompt: { clientMessageId: 'cm-mode', delivery: 'auto', input: { type: 'message', content: [{ type: 'text', text: 'hi' }] } },
+    });
+    await waitFor(() => events.some((event) => event.type === 'session.turn' && event.state === 'completed'));
+    expect(events.filter((event) => event.type === 'session.config').at(-1).config.mode).toBe('cordis');
     assertSchema(events);
   });
 

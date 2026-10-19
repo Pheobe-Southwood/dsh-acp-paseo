@@ -175,11 +175,45 @@ The screenshots in the main README were produced with this flow against
 
 - Models and thinking options come from ACP `configOptions`.
 - Approval policy, sandbox mode and plan mode are forwarded unchanged.
+- DSH agent presets are exposed through ACP `modes`, not `configOptions`.
 - A `session/load` replays history in seq order; `replayLimit` caps it.
 - Questions use `_dsh/user_questions` and become Paseo question cards.
 - Tool permissions use `session/request_permission` and are one-shot.
 - Session persistence stores `nativeSessionId`, `dshCwd` and the sidecar
   pointer.
+
+### Agent presets as session modes
+
+`dsh-acp-plus` treats the optional DSH `agentPresets` service as the source of
+truth for ACP session modes:
+
+- `agentPresets.list()` becomes `session/new` (and `load`/`resume`/`fork`)
+  `modes.availableModes`; the composed preset becomes `modes.currentModeId`.
+  Broken presets are omitted so Paseo never offers a mode that cannot mount.
+- Built-in presets (`standard`, `ptc`, `minimal`, `cordis`) get display copy in
+  `packages/dsh-acp-plus/src/modes.ts`; custom presets keep their own `name` and
+  `description`.
+- `session/set_mode` calls `agentPresets.select`. DSH only permits this on a
+  blank session: after the first turn the service rejects the change and the
+  bridge returns an invalid-params error.
+- The bridge emits `current_mode_update`; the Paseo provider maps it to
+  `session.config` and also applies `mode` from `session.open` or
+  `session.configure`.
+
+The plugin does not ship the four presets. A profile that wants them must mount
+`@deepseek-ai/dsh-agent-preset-registry` and declare the preset rows, exactly as
+the DSH Web bundle does. Without `agentPresets`, sessions advertise no modes and
+Paseo keeps the model, thinking, approval, sandbox and plan controls.
+
+The built-in presets also rely on host-plane rows that the Web bundle mounts:
+`@deepseek-ai/dsh-tool-subagent/model-selection-settings`,
+`@deepseek-ai/dsh-cordis-host-runner`, `@deepseek-ai/dsh-tool-cordis/host`, and
+the host `plan-mode` row read by the ACP config option. The Web bundle disables
+the base agent-plane tool rows before mounting presets; an ACP profile that
+copies the preset declarations must mirror those disables, or host and preset
+tools duplicate. The README demo profile follows that layout and omits
+`dsh-tool-schedule` and `dsh-plugin-market/tools` because those optional
+packages are not installed in the demo build.
 
 The full ACP method table, `_meta` envelope and extension list live in
 [`packages/dsh-acp-plus/README.md`](../packages/dsh-acp-plus/README.md).

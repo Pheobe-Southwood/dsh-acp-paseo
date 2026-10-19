@@ -1,6 +1,6 @@
 {
   "name": "@ds-hu/dsh-acp-paseo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The most feature-complete DeepSeek Harness – Paseo integration project.",
   "license": "MIT",
   "type": "module",

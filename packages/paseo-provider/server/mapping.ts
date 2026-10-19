@@ -173,8 +173,25 @@ export function todoItem(update: any): ProviderTimelineItem {
   };
 }
 
+/** ACP session mode state to Paseo provider modes plus the current mode id. */
+export function modesFromAcp(modes: any): { modes: ProviderConfigState['modes']; mode?: string } {
+  const available = Array.isArray(modes?.availableModes) ? modes.availableModes : [];
+  const mapped = available
+    .map((mode: any) => ({
+      id: String(mode?.id ?? ''),
+      label: String(mode?.name ?? mode?.id ?? ''),
+      ...(typeof mode?.description === 'string' && mode.description.length > 0 ? { description: mode.description } : {}),
+    }))
+    .filter((mode: { id: string }) => mode.id.length > 0);
+  const current = typeof modes?.currentModeId === 'string' && modes.currentModeId.length > 0 ? modes.currentModeId : undefined;
+  return {
+    modes: mapped,
+    ...(current ? { mode: current } : {}),
+  };
+}
+
 /** ACP config options to Paseo provider config state. */
-export function configStateFromAcp(configOptions: readonly any[]): ProviderConfigState {
+export function configStateFromAcp(configOptions: readonly any[], modeState?: any): ProviderConfigState {
   const models: Array<{ id: string; label: string }> = [];
   const thinkingOptions: Array<{ id: string; label: string }> = [];
   const settings: ProviderSetting[] = [];
@@ -206,11 +223,13 @@ export function configStateFromAcp(configOptions: readonly any[]): ProviderConfi
       options: options.map((entry: any) => ({ label: entry.label, value: entry.value })),
     });
   }
+  const { modes, mode } = modesFromAcp(modeState);
   return {
     ...(model ? { model } : {}),
+    ...(mode ? { mode } : {}),
     ...(thinkingOption ? { thinkingOption } : {}),
     models,
-    modes: [],
+    modes,
     thinkingOptions,
     settings,
   };

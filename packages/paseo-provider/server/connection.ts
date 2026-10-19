@@ -20,6 +20,7 @@ import { AcpSessionClient, type AcpClientHooks } from './acp-client.js';
 import {
   answersFromPaseo,
   configStateFromAcp,
+  modesFromAcp,
   permissionRequestFromAcp,
   questionRequestFromDsh,
   todoItem,
@@ -64,6 +65,7 @@ interface SessionState {
   closed: boolean;
   activeTurn?: { turnId: string; clientMessageId: string };
   lastConfig?: any;
+  lastModes?: any;
 }
 
 function launchCommand(request: ProviderConnectRequest, overrides?: ConnectionOverrides): [string, ...string[]] | undefined {
@@ -106,6 +108,7 @@ function paseoMeta(config: ProviderSessionConfig): Record<string, unknown> {
       persist: config.persist,
       title: config.title,
       model: config.model,
+      mode: config.mode,
       thinkingOption: config.thinkingOption,
       settings: config.settings,
     },
@@ -255,7 +258,16 @@ export function createConnection(options: ConnectionOptions): ProviderConnection
         return;
       }
       case 'config_option_update': {
-        session.lastConfig = configStateFromAcp(update.configOptions);
+        session.lastConfig = configStateFromAcp(update.configOptions, session.lastModes);
+        emit({ type: 'session.config', sessionId: session.sessionId, config: session.lastConfig });
+        return;
+      }
+      case 'current_mode_update': {
+        session.lastModes = { ...(session.lastModes ?? { availableModes: [] }), currentModeId: String(update.currentModeId ?? '') };
+        session.lastConfig = {
+          ...(session.lastConfig ?? configStateFromAcp([])),
+          ...modesFromAcp(session.lastModes),
+        };
         emit({ type: 'session.config', sessionId: session.sessionId, config: session.lastConfig });
         return;
       }
@@ -370,6 +382,22 @@ export function createConnection(options: ConnectionOptions): ProviderConnection
       throw error;
     }
 
+    session.lastModes = openResponse?.modes;
+    const requestedMode = typeof config.mode === 'string' ? config.mode : undefined;
+    const requestedModeAvailable =
+      requestedMode !== undefined &&
+      Array.isArray(session.lastModes?.availableModes) &&
+      session.lastModes.availableModes.some((mode: any) => mode?.id === requestedMode);
+    if (!nativeSessionId && requestedMode && requestedModeAvailable && session.lastModes?.currentModeId !== requestedMode) {
+      try {
+        await client.setMode({ sessionId: session.acpSessionId, modeId: requestedMode });
+      } catch (error) {
+        await client.close();
+        throw error;
+      }
+      session.lastModes = { ...(session.lastModes ?? { availableModes: [] }), currentModeId: requestedMode };
+    }
+
     session.persistence = {
       version: 1,
       data: {
@@ -380,8 +408,9 @@ export function createConnection(options: ConnectionOptions): ProviderConnection
       },
     };
     emit({ type: 'session.persistence', sessionId, persistence: session.persistence });
-    if (Array.isArray(openResponse?.configOptions) && openResponse.configOptions.length > 0) {
-      session.lastConfig = configStateFromAcp(openResponse.configOptions);
+    const configOptions = Array.isArray(openResponse?.configOptions) ? openResponse.configOptions : [];
+    if (configOptions.length > 0 || session.lastModes) {
+      session.lastConfig = configStateFromAcp(configOptions, session.lastModes);
       emit({ type: 'session.config', sessionId, config: session.lastConfig });
     }
     sessions.set(sessionId, session);
@@ -425,11 +454,19 @@ export function createConnection(options: ConnectionOptions): ProviderConnection
     const apply = async (configId: string, value: string) => {
       const response = await session.client.setConfigOption({ sessionId: session.acpSessionId, configId, value });
       if (Array.isArray(response?.configOptions)) {
-        session.lastConfig = configStateFromAcp(response.configOptions);
+        session.lastConfig = configStateFromAcp(response.configOptions, session.lastModes);
       }
     };
     if (changes.model !== undefined && changes.model !== null) await apply('model', changes.model);
     if (changes.thinkingOption !== undefined && changes.thinkingOption !== null) await apply('reasoning_effort', changes.thinkingOption);
+    if (changes.mode !== undefined && changes.mode !== null) {
+      await session.client.setMode({ sessionId: session.acpSessionId, modeId: String(changes.mode) });
+      session.lastModes = { ...(session.lastModes ?? { availableModes: [] }), currentModeId: String(changes.mode) };
+      session.lastConfig = {
+        ...(session.lastConfig ?? configStateFromAcp([])),
+        ...modesFromAcp(session.lastModes),
+      };
+    }
     if (changes.settings) {
       for (const [id, value] of Object.entries(changes.settings)) {
         await apply(id, String(value));
@@ -474,15 +511,16 @@ export function createConnection(options: ConnectionOptions): ProviderConnection
     try {
       await client.initialize();
       const response = await client.newSession({ cwd: input.cwd ?? process.cwd(), mcpServers: [] });
-      const config = configStateFromAcp(response?.configOptions ?? []);
+      const config = configStateFromAcp(response?.configOptions ?? [], response?.modes);
       emit({
         type: 'catalog',
         requestId: input.requestId,
         catalog: {
           models: config.models,
-          modes: [],
+          modes: config.modes,
           thinkingOptions: config.thinkingOptions,
           ...(config.model ? { defaultModel: config.model } : {}),
+          ...(config.mode ? { defaultMode: config.mode } : {}),
         },
       });
       await client.closeSession(String(response?.sessionId ?? ''));

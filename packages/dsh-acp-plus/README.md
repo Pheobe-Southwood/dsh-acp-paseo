@@ -73,17 +73,18 @@ The bundled patch inserts:
 | --- | --- |
 | `initialize` | `protocolVersion: 1`; `loadSession: true`; `promptCapabilities.image` when the deployment supports image prompts (`audio` and `embeddedContext` are false); `sessionCapabilities: {list, resume, close, fork}`; advertises features in the response `_meta.dsh`. |
 | `authenticate` | No-op; returns `{}`. |
-| `session/new` | Creates a DSH agent; a non-empty `additionalDirectories` is rejected with `-32602`. Returns `configOptions` and `_meta.dsh`. |
-| `session/load` | Replays persisted history as `session/update` in seq order (capped by `replayLimit`), then resumes the agent. |
-| `session/resume` | Resumes a persisted session without replay. |
+| `session/new` | Creates a DSH agent; a non-empty `additionalDirectories` is rejected with `-32602`. Returns `configOptions`, optional `modes` and `_meta.dsh`. |
+| `session/load` | Replays persisted history as `session/update` in seq order (capped by `replayLimit`), then resumes the agent; returns optional `modes`. |
+| `session/resume` | Resumes a persisted session without replay; returns optional `modes`. |
 | `session/list` | Paged session summaries; each item carries `_meta.dsh`. |
 | `session/close` | Cancels pending waiters and closes the agent. |
 | `session/set_config_option` | Applies `model`, `reasoning_effort`, `approval_policy`, `sandbox_mode` or `plan_mode`; returns the updated option set. |
+| `session/set_mode` | Selects a DSH agent preset declared by the profile. DSH only allows this before the first turn; success emits `current_mode_update`. |
 | `session/prompt` | Streams updates for the turn and returns a `stopReason` plus `_meta.dsh`. |
 | `session/cancel` (notification) | Cancels the in-flight turn. |
-| `session/fork` (unstable) | Forks a session with `buildForkSeed` and `agents.create`; the same handler is exposed as `_dsh/session/fork`. |
+| `session/fork` (unstable) | Forks a session with `buildForkSeed` and `agents.create`; the same handler is exposed as `_dsh/session/fork`; returns optional `modes`. |
 
-Not implemented, so they answer with the ACP unknown-method error `-32601`: `logout`, `session/set_mode`, `session/delete`. The client's `fs/*` and `terminal/*` methods are never called; tool execution stays inside DSH's own filesystem and sandbox. Monetary cost is not reported — `_meta.dsh.features.cost` is `false`.
+Not implemented, so they answer with the ACP unknown-method error `-32601`: `logout`, `session/delete`. The client's `fs/*` and `terminal/*` methods are never called; tool execution stays inside DSH's own filesystem and sandbox. Monetary cost is not reported — `_meta.dsh.features.cost` is `false`.
 
 ## `_meta` and extensions
 

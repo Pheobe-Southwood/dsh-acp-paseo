@@ -35,6 +35,7 @@ import {
   updateMeta,
 } from './meta.js';
 import { mcpPluginConfig, resolveMcpConfigs, type McpServerConfig } from './mcp.js';
+import { buildSessionModes } from './modes.js';
 import { projectEvent, usageFromEvent } from './projection.js';
 import { inferToolKind } from './tool-projection.js';
 import { StreamAccumulator } from './stream.js';
@@ -72,6 +73,7 @@ export interface SessionRecord {
   questions: Map<string, (answer: any) => void>;
   approvalPolicy?: string;
   sandboxMode?: string;
+  currentModeId?: string;
   state: 'loading' | 'ready' | 'prompting' | 'closed';
   lastUsage?: any;
   lastTurnEnd?: any;
@@ -231,6 +233,13 @@ export class SessionBridge {
     this.queue(record, () => this.sendConfigUpdate(record));
   }
 
+  /** The profile's preset roster as an ACP mode state, when one is declared. */
+  private async sessionModes(record: SessionRecord): Promise<any | undefined> {
+    const modes = await buildSessionModes(this.deps.ctx, record);
+    if (modes && record.currentModeId !== modes.currentModeId) record.currentModeId = modes.currentModeId;
+    return modes;
+  }
+
   /** Advertise the agent's slash commands on the standard update channel. */
   private publishCommands(record: SessionRecord): void {
     const commands = service<any>(this.deps.ctx, 'commands');
@@ -277,10 +286,17 @@ export class SessionBridge {
     this.sessions.set(sessionId, record);
     record.state = 'ready';
     this.publishCommands(record);
+    const initialMode = typeof paseo?.mode === 'string' ? paseo.mode : undefined;
+    let modes = await this.sessionModes(record);
+    if (initialMode && modes?.availableModes?.some((mode: any) => mode.id === initialMode) && modes.currentModeId !== initialMode) {
+      await this.setMode({ sessionId, modeId: initialMode });
+      modes = await this.sessionModes(record);
+    }
     const configOptions = await buildConfigOptions(this.deps.ctx, record);
     return {
       sessionId,
       configOptions,
+      ...(modes ? { modes } : {}),
       _meta: dshMeta('session-new', {
         cwd,
         paseo: jsonSafe(paseo),
@@ -325,9 +341,11 @@ export class SessionBridge {
       throw internalError(`failed to load the session: ${errorMessage(error)}`);
     }
     this.publishCommands(record);
+    const modes = await this.sessionModes(record);
     const configOptions = await buildConfigOptions(this.deps.ctx, record);
     return {
       configOptions,
+      ...(modes ? { modes } : {}),
       _meta: dshMeta('session-load', {
         cwd: storedCwd,
         inheritedEventCount: snapshot?.inheritedEventCount,
@@ -364,9 +382,11 @@ export class SessionBridge {
       throw internalError(`failed to resume the session: ${errorMessage(error)}`);
     }
     this.publishCommands(record);
+    const modes = await this.sessionModes(record);
     const configOptions = await buildConfigOptions(this.deps.ctx, record);
     return {
       configOptions,
+      ...(modes ? { modes } : {}),
       _meta: dshMeta('session-resume', { cwd: storedCwd }),
     };
   }
@@ -573,6 +593,31 @@ export class SessionBridge {
     };
   }
 
+  /** Switch the session's DSH agent preset through its ACP mode identity. */
+  async setMode(params: any): Promise<any> {
+    const record = this.requireSession(params?.sessionId);
+    const modeId = String(params?.modeId ?? '');
+    const presets = service<any>(this.deps.ctx, 'agentPresets');
+    if (!presets?.select) throw invalidParams('session modes are unavailable: agent presets are not configured');
+    const modes = await this.sessionModes(record);
+    if (!modes || !modes.availableModes.some((mode: any) => mode.id === modeId)) {
+      throw invalidParams(`unknown session mode: ${modeId}`);
+    }
+    try {
+      await presets.select(record.agent, modeId);
+    } catch (error) {
+      throw invalidParams(errorMessage(error));
+    }
+    record.currentModeId = modeId;
+    this.publishCommands(record);
+    await this.sendUpdate(record, {
+      sessionUpdate: 'current_mode_update',
+      currentModeId: modeId,
+      _meta: dshMeta('update.current_mode_update', { native: { modeId } }),
+    });
+    return { _meta: dshMeta('session-mode', { modeId }) };
+  }
+
   // -------------------------------------------------------------------- fork
 
   async fork(params: any): Promise<any> {
@@ -615,6 +660,7 @@ export class SessionBridge {
     this.sessions.set(newId, record);
     record.state = 'ready';
     this.publishCommands(record);
+    const modes = await this.sessionModes(record);
     const configOptions = await buildConfigOptions(this.deps.ctx, record);
     const lineage = {
       parentSessionId: sourceId,
@@ -625,6 +671,7 @@ export class SessionBridge {
     return {
       sessionId: newId,
       configOptions,
+      ...(modes ? { modes } : {}),
       lineage,
       _meta: dshMeta('session-fork', { lineage }),
     };

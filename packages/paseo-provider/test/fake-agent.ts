@@ -7,11 +7,25 @@ import { agent, type AgentApp } from '@agentclientprotocol/sdk';
 
 export interface FakeAgentHooks {
   configOptions?: any[];
+  modes?: any;
   loadSession?: boolean;
   supportsImage?: boolean;
   onLoad?: (context: { params: any; client: any }) => Promise<void> | void;
   onPrompt?: (context: { params: any; client: any }) => Promise<void> | void;
   onSetConfigOption?: (context: { params: any }) => any[] | undefined;
+  onSetMode?: (context: { params: any }) => void;
+}
+
+export function defaultModes(): any {
+  return {
+    currentModeId: 'standard',
+    availableModes: [
+      { id: 'standard', name: 'Standard mode', description: 'Everyday tasks' },
+      { id: 'ptc', name: 'PTC mode', description: 'Batch tool calls' },
+      { id: 'minimal', name: 'Minimal mode', description: 'Terminal only' },
+      { id: 'cordis', name: 'Creator mode', description: 'Author plugins' },
+    ],
+  };
 }
 
 export function defaultConfigOptions(): any[] {
@@ -55,6 +69,8 @@ export function defaultConfigOptions(): any[] {
 export function createFakeAgent(hooks: FakeAgentHooks = {}): AgentApp {
   const app = agent({ name: 'fake-dsh' });
   let configOptions = hooks.configOptions ?? defaultConfigOptions();
+  let modesState = hooks.modes;
+  const withModes = (payload: Record<string, unknown>): any => (modesState ? { ...payload, modes: modesState } : payload);
 
   app.onRequest('initialize', async () => ({
     protocolVersion: 1,
@@ -68,14 +84,14 @@ export function createFakeAgent(hooks: FakeAgentHooks = {}): AgentApp {
     agentInfo: { name: 'fake-dsh', version: '0.0.0-test' },
   }));
 
-  app.onRequest('session/new', async () => ({ sessionId: 'dsh-session-1', configOptions }));
+  app.onRequest('session/new', async () => withModes({ sessionId: 'dsh-session-1', configOptions }));
 
   app.onRequest('session/load', async ({ params, client }) => {
     await hooks.onLoad?.({ params, client });
-    return { configOptions };
+    return withModes({ configOptions });
   });
 
-  app.onRequest('session/resume', async () => ({ configOptions }));
+  app.onRequest('session/resume', async () => withModes({ configOptions }));
 
   app.onRequest('session/list', async () => ({
     sessions: [
@@ -92,6 +108,12 @@ export function createFakeAgent(hooks: FakeAgentHooks = {}): AgentApp {
       );
     }
     return { configOptions };
+  });
+
+  app.onRequest('session/set_mode', async ({ params }) => {
+    hooks.onSetMode?.({ params });
+    if (modesState) modesState = { ...modesState, currentModeId: String(params.modeId) };
+    return {};
   });
 
   app.onRequest('session/close', async () => ({}));

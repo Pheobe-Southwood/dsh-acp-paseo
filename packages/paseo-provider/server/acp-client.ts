@@ -146,6 +146,13 @@ export class AcpSessionClient {
     });
   }
 
+  async setMode(params: { sessionId: string; modeId: string }): Promise<any> {
+    return this.agent.request('session/set_mode', {
+      sessionId: params.sessionId,
+      modeId: params.modeId,
+    });
+  }
+
   async closeSession(sessionId: string): Promise<void> {
     await this.agent.request('session/close', { sessionId });
   }
