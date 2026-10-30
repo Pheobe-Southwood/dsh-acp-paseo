@@ -54,7 +54,24 @@ function assertEntry(record: Record<string, string>, kind: 'env' | 'header'): vo
 
 function recordOf(value: unknown, label: string): Record<string, string> {
   if (value === undefined || value === null) return {};
-  if (typeof value !== 'object' || Array.isArray(value)) throw new ContentError(`${label} must be an object`);
+  if (Array.isArray(value)) {
+    const entries: [string, string][] = [];
+    const seen = new Set<string>();
+    for (const entry of value) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        throw new ContentError(`${label} entries must have string name and value`);
+      }
+      const pair = entry as Record<string, unknown>;
+      if (typeof pair.name !== 'string' || typeof pair.value !== 'string') {
+        throw new ContentError(`${label} entries must have string name and value`);
+      }
+      if (seen.has(pair.name)) throw new ContentError(`duplicate MCP ${label} name: ${pair.name}`);
+      seen.add(pair.name);
+      entries.push([pair.name, pair.value]);
+    }
+    return Object.fromEntries(entries);
+  }
+  if (typeof value !== 'object') throw new ContentError(`${label} must be an object`);
   const out: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
     out[key] = String(entry);

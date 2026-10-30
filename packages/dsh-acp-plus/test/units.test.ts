@@ -162,6 +162,32 @@ describe('mcp config translation', () => {
     expect(mcpPluginConfig(configs[1])).toMatchObject({ transport: 'streamable-http', serverName: 'web' });
   });
 
+  it('accepts ACP name-value arrays for stdio env and HTTP headers', () => {
+    const configs = resolveMcpConfigs(
+      [
+        { name: 'fs', command: '/usr/bin/mcp-fs', env: [{ name: 'TOKEN', value: 'placeholder' }] },
+        { name: 'web', url: 'https://example.com/mcp', headers: [{ name: 'Authorization', value: 'Bearer placeholder' }] },
+      ],
+      '/tmp/project',
+    );
+
+    expect(configs[0].env).toEqual({ TOKEN: 'placeholder' });
+    expect(configs[1].headers).toEqual({ Authorization: 'Bearer placeholder' });
+  });
+
+  it('rejects malformed and duplicate ACP name-value entries', () => {
+    expect(() => resolveMcpConfigs([{ name: 'web', url: 'https://example.com/mcp', headers: [{ name: 'x-test' }] }], '/tmp')).toThrow(
+      ContentError,
+    );
+    expect(
+      () =>
+        resolveMcpConfigs(
+          [{ name: 'web', url: 'https://example.com/mcp', headers: [{ name: 'x-test', value: 'one' }, { name: 'x-test', value: 'two' }] }],
+          '/tmp',
+        ),
+    ).toThrow(ContentError);
+  });
+
   it('normalizes unsafe names and rejects invalid entries', () => {
     const [config] = resolveMcpConfigs([{ name: 'my server!', command: '/bin/echo' }], '/tmp');
     expect(config.serverName).toMatch(/^my_server_[0-9a-f]{8}$/);
